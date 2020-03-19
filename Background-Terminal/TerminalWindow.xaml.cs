@@ -14,14 +14,20 @@ namespace Background_Terminal
 {
     public partial class TerminalWindow : Window
     {
-        public delegate void SendCommandProc(string command);
+        public delegate void SendCommandProc(string command, bool output = false);
         private SendCommandProc SendCommand;
 
-        public TerminalWindow(SendCommandProc sendCommand)
+        public delegate void KillChildrenProc();
+        private KillChildrenProc KillChildren;
+
+        bool _ctrlDown = false;
+
+        public TerminalWindow(SendCommandProc sendCommand, KillChildrenProc killChildren)
         {
             InitializeComponent();
 
             SendCommand = sendCommand;
+            KillChildren = killChildren;
         }
 
         public void UpdateTerminalDataTextBoxMargin() // I do what I want
@@ -30,13 +36,26 @@ namespace Background_Terminal
         }
 
         #region Event Handlers
-        public void TerminalDataTextBox_TextChanged(object sender, TextChangedEventArgs e)
+        private void TerminalDataTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             TerminalData_TextBox.ScrollToEnd();
         }
 
-        public void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
+        private void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
+            // Cancel current command
+            if (e.Key.Equals(Key.C) && _ctrlDown)
+            {
+                KillChildren();
+
+                e.Handled = true;
+            }
+
+            if (e.Key.Equals(Key.LeftCtrl))
+            {
+                _ctrlDown = true;
+            }
+
             if (e.Key.Equals(Key.Return) || e.Key.Equals(Key.Enter))
             {
                 SendCommand(Input_TextBox.Text);
@@ -45,7 +64,15 @@ namespace Background_Terminal
             }
         }
 
-        public void TerminalWindow_Loaded(object sender, EventArgs e)
+        private void InputTextBox_PreviewKeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key.Equals(Key.LeftCtrl))
+            {
+                _ctrlDown = false;
+            }
+        }
+
+        private void TerminalWindow_Loaded(object sender, EventArgs e)
         {
             UpdateTerminalDataTextBoxMargin();
         }

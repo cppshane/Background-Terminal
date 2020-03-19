@@ -6,6 +6,7 @@ using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using System.Management;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -35,9 +36,11 @@ namespace Background_Terminal
 
         private BackgroundTerminalSettings _settings;
 
-        private Process _cmdProcess;
+        private Process _process;
 
         private ObservableCollection<string> _terminalData = new ObservableCollection<string>();
+
+        private int _cmdProcessId;
 
         private bool _terminalWindowActive = false;
 
@@ -52,7 +55,7 @@ namespace Background_Terminal
             InitializeComponent();
 
             // Create TerminalWindow
-            _terminalWindow = new TerminalWindow(SendCommand);
+            _terminalWindow = new TerminalWindow(SendCommand, KillChildren);
             _terminalWindow.Show();
 
             // Apply changes in terminal data to TerminalWindow
@@ -136,34 +139,51 @@ namespace Background_Terminal
             _terminalWindow.UpdateTerminalDataTextBoxMargin();
         }
 
+        private List<Process> GetProcessChildren()
+        {
+            List<Process> children = new List<Process>();
+            ManagementObjectSearcher managementObjectSearcher = new ManagementObjectSearcher(String.Format("Select * From Win32_Process Where ParentProcessID={0}", _process.Id));
+
+            foreach (ManagementObject managementObject in managementObjectSearcher.Get())
+            {
+                children.Add(Process.GetProcessById(Convert.ToInt32(managementObject["ProcessID"])));
+            }
+
+            return children;
+        }
+
         #region Terminal Data Handlers
         private async Task<int> RunTerminalProcessAsync()
         {
             TaskCompletionSource<int> taskCompletionSource = new TaskCompletionSource<int>();
 
-            _cmdProcess = new Process();
+            _process = new Process();
 
-            _cmdProcess.StartInfo.FileName = "cmd.exe";
-            _cmdProcess.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
-            _cmdProcess.StartInfo.UseShellExecute = false;
-            _cmdProcess.StartInfo.CreateNoWindow = true;
-            _cmdProcess.StartInfo.RedirectStandardInput = true;
-            _cmdProcess.StartInfo.RedirectStandardOutput = true;
-            _cmdProcess.StartInfo.RedirectStandardError = true;
+            _process.StartInfo.FileName = "cmd.exe";
+            _process.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
+            _process.StartInfo.UseShellExecute = false;
+            _process.StartInfo.CreateNoWindow = true;
+            _process.StartInfo.RedirectStandardInput = true;
+            _process.StartInfo.RedirectStandardOutput = true;
+            _process.StartInfo.RedirectStandardError = true;
 
-            _cmdProcess.EnableRaisingEvents = true;
-            _cmdProcess.OutputDataReceived += CMD_OutputDataReceived;
-            _cmdProcess.ErrorDataReceived += CMD_ErrorDataReceived;
+            _process.EnableRaisingEvents = true;
+            _process.OutputDataReceived += CMD_OutputDataReceived;
+            _process.ErrorDataReceived += CMD_ErrorDataReceived;
 
-            _cmdProcess.Exited += new EventHandler((sender, args) =>
+            _process.Exited += new EventHandler((sender, args) =>
             {
-                taskCompletionSource.SetResult(_cmdProcess.ExitCode);
-                _cmdProcess.Dispose();
+                taskCompletionSource.SetResult(_process.ExitCode);
+                _process.Dispose();
             });
 
-            _cmdProcess.Start();
-            _cmdProcess.BeginOutputReadLine();
-            _cmdProcess.BeginErrorReadLine();
+            _process.Start();
+            _process.BeginOutputReadLine();
+            _process.BeginErrorReadLine();
+
+            List<Process> children = GetProcessChildren();
+            if (children.Count > 0)
+                _cmdProcessId = children[0].Id;
 
             return await taskCompletionSource.Task;
         }
@@ -178,10 +198,25 @@ namespace Background_Terminal
             _terminalData.Add(e.Data);
         }
 
-        private void SendCommand(string command)
+        private void SendCommand(string command, bool output = true)
         {
-            _terminalData.Add(command);
-            _cmdProcess.StandardInput.WriteLine(command);
+            if (output)
+                _terminalData.Add(command);
+
+            _process.StandardInput.WriteLine(command);
+        }
+
+        private void KillChildren()
+        {
+            List<Process> children = GetProcessChildren();
+
+            foreach (Process child in children)
+            {
+                if (!child.Id.Equals(_cmdProcessId))
+                {
+                    child.Kill();
+                }
+            }
         }
         #endregion
 
