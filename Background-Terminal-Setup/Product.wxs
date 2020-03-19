@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <?include $(sys.CURRENTDIR)\Config.wxi?>
+	<Product Id="*" Name="$(var.ProductName)" Language="1033" Version="1.0.0.0" Manufacturer="shaneduffy.io" UpgradeCode="983054b1-dfd7-4147-b5cc-fc703cefcc1c">
+		<Package InstallerVersion="200" InstallPrivileges="elevated" Compressed="yes" InstallScope="perMachine" Description="$(var.ProductName)"/>
+
+		<MajorUpgrade DowngradeErrorMessage="A newer version of Background Terminal is already installed." />
+    <MediaTemplate EmbedCab="yes"/>
+
+		<Feature Id="ProductFeature" Title="Background-Terminal-Setup" Level="1">
+      <ComponentGroupRef Id="ProductComponents" />
+      <ComponentRef Id="ConfigComponent"/>
+		</Feature>
+
+    <Icon Id="ProductIcon" SourceFile="../Background-Terminal/background-terminal.ico"/>
+    <Property Id="ARPPRODUCTICON" Value="ProductIcon" />
+	</Product>
+
+  <Fragment>
+    <Directory Id="TARGETDIR" Name="SourceDir">
+      <Directory Id="$(var.PlatformProgramFilesFolder)">
+        <Directory Id="INSTALLFOLDER" Name="BackgroundTerminal" />
+      </Directory>
+      <Directory Id="LocalAppDataFolder">
+        <Directory Id="MyAppFolder" Name="BackgroundTerminal">
+        </Directory>
+      </Directory>
+    </Directory>
+  </Fragment>
+
+  <Fragment>
+    <ComponentGroup Id="ProductComponents" Directory="INSTALLFOLDER">
+      <Component Id="AppComponent" Guid="F06374FC-ED82-4AD9-BA08-560103221083" Win64="$(var.Win64)">
+        <File Id="AppFile" Name="Background-Terminal.exe" Source="$(var.ReleaseExecutablePath)" KeyPath="yes" />
+      </Component>
+      <Component Id="RegistryEntries" Guid="27A07591-AF2E-4F62-AC49-16DCA78C9724" Win64="$(var.Win64)">
+        <RegistryKey Root="HKCU" Key="Software\Microsoft\Windows\CurrentVersion\Run">
+          <RegistryValue Type="string" Value="[INSTALLFOLDER]Background-Terminal.exe" Action="write"/>
+        </RegistryKey>
+      </Component>
+    </ComponentGroup>
+
+    <Component Id="ConfigComponent" Guid="5E6A2E3B-E2B8-45B7-8B22-20276E1A587C" Directory="MyAppFolder" Win64="$(var.Win64)">
+      <RemoveFolder Id="RemoveAppDataFolder" Directory="MyAppFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\[Manufacturer]\[ProductName]" Name="AppDataFolder" Value="[MyAppFolder]" Type="string" KeyPath="yes" />
+      <File Id="ConfigFile" Name="config.json" Source="../Background-Terminal/config.json" />
+    </Component>
+
+    <CustomAction Id="EXECUTE_AFTER_FINALIZE" Execute="immediate" Impersonate="no" Return="asyncNoWait" FileKey="AppFile" ExeCommand="" />
+
+    <InstallExecuteSequence>
+      <Custom Action="EXECUTE_AFTER_FINALIZE" After="InstallFinalize">NOT Installed</Custom>
+    </InstallExecuteSequence>
+  </Fragment>
+</Wix>

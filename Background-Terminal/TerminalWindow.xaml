@@ -1,0 +1,34 @@
+﻿<Window
+    x:Class="Background_Terminal.TerminalWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    Title="TerminalWindow"
+    AllowsTransparency="True"
+    Background="Transparent"
+    Loaded="TerminalWindow_Loaded"
+    ResizeMode="NoResize"
+    ShowInTaskbar="False"
+    WindowStyle="None"
+    mc:Ignorable="d">
+    <Grid>
+        <TextBox
+            x:Name="TerminalData_TextBox"
+            Background="Transparent"
+            BorderThickness="0"
+            FontFamily="Consolas"
+            IsReadOnly="True"
+            IsReadOnlyCaretVisible="True"
+            TextChanged="TerminalDataTextBox_TextChanged"
+            TextWrapping="Wrap" />
+        <TextBox
+            x:Name="Input_TextBox"
+            VerticalAlignment="Bottom"
+            Background="Transparent"
+            BorderThickness="0"
+            Focusable="True"
+            FontFamily="Consolas"
+            PreviewKeyDown="InputTextBox_PreviewKeyDown" />
+    </Grid>
+</Window>
