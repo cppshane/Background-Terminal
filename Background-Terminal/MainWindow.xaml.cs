@@ -8,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Management;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -39,6 +40,8 @@ namespace Background_Terminal
         private Process _process;
 
         private ObservableCollection<string> _terminalData = new ObservableCollection<string>();
+
+        private string _newlineString = Environment.NewLine;
 
         private int _cmdProcessId;
 
@@ -200,10 +203,25 @@ namespace Background_Terminal
 
         private void SendCommand(string command, bool output = true)
         {
-            if (output)
-                _terminalData.Add(command);
+            // Background-Terminal application commands
+            if (command.StartsWith("bgt"))
+            {
+                string bgtCommand = command.Split(' ')[1];
+                string[] parameters = command.Substring(command.IndexOf(bgtCommand) + bgtCommand.Length + 1).Split(' ');
 
-            _process.StandardInput.WriteLine(command);
+                if (bgtCommand.Equals("newline"))
+                {
+                    _newlineString = Regex.Unescape(parameters[0]);
+                }
+            }
+            else
+            {
+                if (output)
+                    _terminalData.Add(command);
+
+                _process.StandardInput.NewLine = _newlineString;
+                _process.StandardInput.WriteLine(command);
+            }
         }
 
         private void KillChildren()
