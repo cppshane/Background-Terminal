@@ -20,6 +20,9 @@ namespace Background_Terminal
         public delegate void KillChildrenProc();
         private KillChildrenProc KillChildren;
 
+        private List<string> _commandHistory = new List<string>();
+        private int _commandHistoryIndex = -1;
+
         bool _ctrlDown = false;
 
         public TerminalWindow(SendCommandProc sendCommand, KillChildrenProc killChildren)
@@ -56,10 +59,38 @@ namespace Background_Terminal
                 _ctrlDown = true;
             }
 
+            if (e.Key.Equals(Key.Up))
+            {
+                if (_commandHistoryIndex + 1 < _commandHistory.Count)
+                {
+                    _commandHistoryIndex++;
+
+                    Input_TextBox.Text = _commandHistory[_commandHistoryIndex];
+                    Input_TextBox.CaretIndex = Input_TextBox.Text.Length;
+                }
+            }
+
+            if (e.Key.Equals(Key.Down))
+            {
+                if (_commandHistoryIndex - 1 >= 0)
+                {
+                    _commandHistoryIndex--;
+
+                    Input_TextBox.Text = _commandHistory[_commandHistoryIndex];
+                    Input_TextBox.CaretIndex = Input_TextBox.Text.Length;
+                }
+            }
+
             if (e.Key.Equals(Key.Return) || e.Key.Equals(Key.Enter))
             {
+                // Add to command history
+                _commandHistory.Insert(0, Input_TextBox.Text);
+                _commandHistoryIndex = -1;
+
+                // Send command
                 SendCommand(Input_TextBox.Text);
 
+                // Reset textbox content
                 Input_TextBox.Text = "";
             }
         }
