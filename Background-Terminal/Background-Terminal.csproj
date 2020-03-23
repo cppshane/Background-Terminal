@@ -6,7 +6,7 @@
     <RootNamespace>Background_Terminal</RootNamespace>
     <UseWPF>true</UseWPF>
     <ApplicationIcon>background-terminal.ico</ApplicationIcon>
-    <Platforms>AnyCPU;x86;x64</Platforms>
+    <Platforms>x86;x64</Platforms>
     <Version>1.1.0</Version>
   </PropertyGroup>
 
@@ -29,10 +29,6 @@
     <Resource Include="Images\background-terminal.ico" />
     <Resource Include="Images\exit.png" />
     <Resource Include="Images\minimize.png" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Properties\" />
   </ItemGroup>
 
 </Project>
