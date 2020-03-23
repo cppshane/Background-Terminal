@@ -40,7 +40,9 @@ namespace Background_Terminal
         private Process _process;
 
         private ObservableCollection<string> _terminalData = new ObservableCollection<string>();
+        public ObservableCollection<NewlineTrigger> NewlineTriggers { get; set; }
 
+        private string _currentTrigger = null;
         private string _newlineString = Environment.NewLine;
 
         private int _cmdProcessId;
@@ -118,6 +120,11 @@ namespace Background_Terminal
             Width_TextBox.Text = _settings.Width.ToString();
             Height_TextBox.Text = _settings.Height.ToString();
 
+            if (_settings.NewlineTriggers == null)
+                _settings.NewlineTriggers = new List<NewlineTrigger>();
+
+            NewlineTriggers = new ObservableCollection<NewlineTrigger>(_settings.NewlineTriggers);
+
             // Set KeyTriggered callback delegate
             Win32Interop.KeyTriggered = KeyTriggered;
 
@@ -126,6 +133,8 @@ namespace Background_Terminal
 
             // Begin terminal process
             RunTerminalProcessAsync();
+
+            DataContext = this;
         }
 
         private void ApplySettingsToTerminalWindow()
@@ -221,6 +230,23 @@ namespace Background_Terminal
 
                 _process.StandardInput.NewLine = _newlineString;
                 _process.StandardInput.WriteLine(command);
+
+                // Check for newline trigger activations
+                foreach (NewlineTrigger trigger in _settings.NewlineTriggers)
+                {
+                    if (command.StartsWith(trigger.TriggerCommand))
+                    {
+                        _currentTrigger = trigger.TriggerCommand;
+
+                        _newlineString = Regex.Unescape(trigger.NewlineString);
+                    }
+                    else if (command.StartsWith(trigger.ExitCommand) && _currentTrigger != null && _currentTrigger.Equals(trigger.TriggerCommand))
+                    {
+                        _currentTrigger = null;
+
+                        _newlineString = Environment.NewLine;
+                    }
+                }
             }
         }
 
@@ -287,6 +313,22 @@ namespace Background_Terminal
             }
 
             _awaitingKey2 = true;
+        }
+
+        private void AddNewlineTriggerButton_Click(object sender, RoutedEventArgs e)
+        {
+            NewlineTriggers.Add(new NewlineTrigger("Trigger Command", "Exit Command", "Newline Character"));
+        }
+
+        private void DeleteNewlineTriggerButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (NewlineTrigger_ListBox.SelectedItem != null)
+                NewlineTriggers.Remove((NewlineTrigger)NewlineTrigger_ListBox.SelectedItem);
+        }
+
+        private void NewlineTriggerTextBox_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            NewlineTrigger_ListBox.SelectedItem = ((TextBox)sender).DataContext;
         }
 
         private void ApplyChangesButton_Click(object sender, RoutedEventArgs e)
@@ -367,6 +409,8 @@ namespace Background_Terminal
             _settings.PosY = posY;
             _settings.Width = width;
             _settings.Height = height;
+
+            _settings.NewlineTriggers = new List<NewlineTrigger>(NewlineTriggers);
 
             ApplySettingsToTerminalWindow();
 
