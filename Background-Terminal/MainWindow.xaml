@@ -40,7 +40,10 @@
             <Setter Property="Template">
                 <Setter.Value>
                     <ControlTemplate TargetType="Button">
-                        <Border x:Name="_Border" Background="#01FFFFFF">
+                        <Border
+                            x:Name="_Border"
+                            Background="#01FFFFFF"
+                            CornerRadius="0, 4, 0, 0">
                             <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
                         </Border>
                         <ControlTemplate.Triggers>
