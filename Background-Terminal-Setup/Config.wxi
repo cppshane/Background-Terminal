@@ -4,11 +4,11 @@
   <?define ProductName = "Background Terminal (64 bit)" ?>
   <?define Win64 = "yes" ?>
   <?define PlatformProgramFilesFolder = "ProgramFiles64Folder" ?>
-  <?define ReleaseExecutablePath = "../Background-Terminal/bin/Release/netcoreapp3.1/win-x64/publish/Background-Terminal.exe" ?>
+  <?define ReleaseExecutablePath = "../Background-Terminal/bin/Release/netcoreapp3.1/publish/win-x64/Background-Terminal.exe" ?>
   <?else ?>
   <?define ProductName = "Background Terminal" ?>
   <?define Win64 = "no" ?>
   <?define PlatformProgramFilesFolder = "ProgramFilesFolder" ?>
-  <?define ReleaseExecutablePath = "../Background-Terminal/bin/Release/netcoreapp3.1/win-x86/publish/Background-Terminal.exe" ?>
+  <?define ReleaseExecutablePath = "../Background-Terminal/bin/Release/netcoreapp3.1/publish/win-x86/Background-Terminal.exe" ?>
   <?endif ?>
 </Include>
