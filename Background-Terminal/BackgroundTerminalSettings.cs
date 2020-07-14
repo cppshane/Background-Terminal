@@ -1,5 +1,7 @@
-﻿using System;
+﻿using Newtonsoft.Json;
+using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Text;
 
@@ -7,6 +9,9 @@ namespace Background_Terminal
 {
     public class BackgroundTerminalSettings
     {
+        [DefaultValue("cmd.exe")]
+        [JsonProperty(DefaultValueHandling = DefaultValueHandling.Populate)]
+        public string ProcessPath { get; set; }
         public int Key1 { get; set; }
         public int Key2 { get; set; }
         public double FontSize { get; set; }

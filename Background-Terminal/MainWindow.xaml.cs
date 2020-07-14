@@ -42,6 +42,7 @@ namespace Background_Terminal
         private ObservableCollection<string> _terminalData = new ObservableCollection<string>();
         public ObservableCollection<NewlineTrigger> NewlineTriggers { get; set; }
 
+        private string _processPath;
         private string _currentTrigger = null;
         private string _newlineString = Environment.NewLine;
 
@@ -112,6 +113,7 @@ namespace Background_Terminal
             _key1 = KeyInterop.KeyFromVirtualKey(_settings.Key1);
             _key2 = KeyInterop.KeyFromVirtualKey(_settings.Key2);
 
+            Process_TextBox.Text = _settings.ProcessPath;
             Key1_Button.Content = _key1.ToString();
             Key2_Button.Content = _key2.ToString();
             FontSize_TextBox.Text = _settings.FontSize.ToString();
@@ -170,9 +172,15 @@ namespace Background_Terminal
         {
             TaskCompletionSource<int> taskCompletionSource = new TaskCompletionSource<int>();
 
+            try
+            {
+                _process?.Kill();
+            }
+            catch (Exception e) { }
+
             _process = new Process();
 
-            _process.StartInfo.FileName = "cmd.exe";
+            _process.StartInfo.FileName = _settings.ProcessPath;
             _process.StartInfo.WorkingDirectory = Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments);
             _process.StartInfo.UseShellExecute = false;
             _process.StartInfo.CreateNoWindow = true;
@@ -186,17 +194,31 @@ namespace Background_Terminal
 
             _process.Exited += new EventHandler((sender, args) =>
             {
-                taskCompletionSource.SetResult(_process.ExitCode);
-                _process.Dispose();
+                Process process = (Process)sender;
+                taskCompletionSource.SetResult(process.ExitCode);
+                process.Dispose();
             });
 
-            _process.Start();
-            _process.BeginOutputReadLine();
-            _process.BeginErrorReadLine();
+            try
+            {
+                _process.Start();
 
-            List<Process> children = GetProcessChildren();
-            if (children.Count > 0)
-                _cmdProcessId = children[0].Id;
+                _process.BeginOutputReadLine();
+                _process.BeginErrorReadLine();
+
+                List<Process> children = GetProcessChildren();
+                if (children.Count > 0)
+                    _cmdProcessId = children[0].Id;
+            } 
+            catch (Exception e)
+            {
+                Show();
+                WindowState = WindowState.Normal;
+                Topmost = true;
+
+                System.Windows.MessageBox.Show("There was an error starting the process. Check your Process input and Apply Changes to retry. Details: " + Environment.NewLine + Environment.NewLine + e.Message);
+                taskCompletionSource.SetException(e);
+            }
 
             return await taskCompletionSource.Task;
         }
@@ -437,6 +459,14 @@ namespace Background_Terminal
             _settings.Height = height;
 
             _settings.NewlineTriggers = new List<NewlineTrigger>(NewlineTriggers);
+
+            if (!_settings.ProcessPath.Equals(Process_TextBox.Text))
+            {
+                _settings.ProcessPath = Process_TextBox.Text;
+
+                // Begin terminal process
+                RunTerminalProcessAsync();
+            }
 
             ApplySettingsToTerminalWindow();
 
