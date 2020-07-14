@@ -48,6 +48,7 @@ namespace Background_Terminal
         private int _cmdProcessId;
 
         private bool _terminalWindowActive = false;
+        private bool _terminalWindowLocked = true;
 
         private bool _awaitingKey1 = false;
         private bool _awaitingKey2 = false;
@@ -60,7 +61,7 @@ namespace Background_Terminal
             InitializeComponent();
 
             // Create TerminalWindow
-            _terminalWindow = new TerminalWindow(SendCommand, KillChildren);
+            _terminalWindow = new TerminalWindow(SendCommand, KillChildren, TerminalWindowUpdate);
             _terminalWindow.Show();
 
             // Apply changes in terminal data to TerminalWindow
@@ -262,6 +263,15 @@ namespace Background_Terminal
                 }
             }
         }
+
+        private void TerminalWindowUpdate()
+        {
+            PosX_TextBox.Text = _terminalWindow.Left.ToString();
+            PosY_TextBox.Text = _terminalWindow.Top.ToString();
+
+            Width_TextBox.Text = _terminalWindow.Width.ToString();
+            Height_TextBox.Text = _terminalWindow.Height.ToString();
+        }
         #endregion
 
         #region Event Handlers
@@ -279,6 +289,22 @@ namespace Background_Terminal
             {
                 WindowState = WindowState.Minimized;
             }
+        }
+
+        private void TerminalWindowLockedButton_Click(object sender, RoutedEventArgs e)
+        {
+            if (_terminalWindowLocked)
+            {
+                _terminalWindowLocked = false;
+                TerminalWindowLocked_Button.Content = "Unlocked";
+            }
+            else
+            {
+                _terminalWindowLocked = true;
+                TerminalWindowLocked_Button.Content = "Locked";
+            }
+
+            _terminalWindow.SetWindowLocked(_terminalWindowLocked);
         }
 
         private void Key1Button_Click(object sender, RoutedEventArgs e)

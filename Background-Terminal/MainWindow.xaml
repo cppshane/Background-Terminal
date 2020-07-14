@@ -7,7 +7,7 @@
     xmlns:tb="http://www.hardcodet.net/taskbar"
     Title="Background Terminal"
     Width="400"
-    Height="340"
+    Height="410"
     AllowsTransparency="True"
     Background="Transparent"
     Closed="MainWindow_Closed"
@@ -179,13 +179,15 @@
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
+                <RowDefinition Height="10" />
+                <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
                 <RowDefinition Height="10" />
                 <RowDefinition Height="100" />
                 <RowDefinition Height="30" />
             </Grid.RowDefinitions>
-            <Border Grid.RowSpan="7" Background="#F5F5F5" />
+            <Border Grid.RowSpan="9" Background="#F5F5F5" />
             <Grid Grid.Row="0" VerticalAlignment="Center">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
@@ -263,6 +265,34 @@
                     VerticalContentAlignment="Center" />
             </Grid>
             <Grid Grid.Row="3">
+                <Border
+                    Height="1"
+                    Margin="10,0,10,0"
+                    BorderBrush="Gray"
+                    BorderThickness="1" />
+            </Grid>
+            <Grid Grid.Row="4">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <Label
+                    Grid.Row="0"
+                    HorizontalAlignment="Center"
+                    Content="Window Status:"
+                    FontFamily="Yu Gothic UI Light" />
+                <Grid Grid.Column="1">
+                    <Button
+                        x:Name="TerminalWindowLocked_Button"
+                        Margin="10,5"
+                        Click="TerminalWindowLockedButton_Click"
+                        Content="Locked"
+                        FontFamily="Yu Gothic UI Light"
+                        FontSize="10"
+                        Style="{StaticResource StandardButton1}" />
+                </Grid>
+            </Grid>
+            <Grid Grid.Row="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
@@ -305,7 +335,7 @@
                         FontFamily="Yu Gothic UI" />
                 </Grid>
             </Grid>
-            <Grid Grid.Row="4">
+            <Grid Grid.Row="6">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
@@ -348,14 +378,14 @@
                         FontFamily="Yu Gothic UI" />
                 </Grid>
             </Grid>
-            <Grid Grid.Row="5">
+            <Grid Grid.Row="7">
                 <Border
                     Height="1"
                     Margin="10,0,10,0"
                     BorderBrush="Gray"
                     BorderThickness="1" />
             </Grid>
-            <Grid Grid.Row="6">
+            <Grid Grid.Row="8">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="30" />
                     <RowDefinition Height="1*" />
@@ -434,7 +464,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
-            <Grid Grid.Row="7">
+            <Grid Grid.Row="9">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1" />

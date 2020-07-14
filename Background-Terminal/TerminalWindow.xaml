@@ -8,8 +8,11 @@
     AllowsTransparency="True"
     Background="Transparent"
     Loaded="TerminalWindow_Loaded"
+    LocationChanged="TerminalWindow_LocationChanged"
+    MouseDown="TerminalWindow_MouseDown"
     ResizeMode="NoResize"
     ShowInTaskbar="False"
+    SizeChanged="TerminalWindow_SizeChanged"
     WindowStyle="None"
     mc:Ignorable="d">
     <Grid>

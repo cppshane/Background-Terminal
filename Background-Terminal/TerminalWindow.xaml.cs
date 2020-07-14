@@ -20,17 +20,23 @@ namespace Background_Terminal
         public delegate void KillChildrenProc();
         private KillChildrenProc KillChildren;
 
+        public delegate void TerminalWindowUpdateProc();
+        private TerminalWindowUpdateProc TerminalWindowUpdate;
+
         private List<string> _commandHistory = new List<string>();
         private int _commandHistoryIndex = -1;
 
+        private bool _locked;
+
         bool _ctrlDown = false;
 
-        public TerminalWindow(SendCommandProc sendCommand, KillChildrenProc killChildren)
+        public TerminalWindow(SendCommandProc sendCommand, KillChildrenProc killChildren, TerminalWindowUpdateProc terminalWindowUpdate)
         {
             InitializeComponent();
 
             SendCommand = sendCommand;
             KillChildren = killChildren;
+            TerminalWindowUpdate = terminalWindowUpdate;
         }
 
         public void UpdateTerminalDataTextBoxMargin() // I do what I want
@@ -38,7 +44,41 @@ namespace Background_Terminal
             TerminalData_TextBox.Margin = new Thickness(0, 0, 0, Input_TextBox.ActualHeight);
         }
 
+        public void SetWindowLocked(bool locked)
+        {
+            _locked = locked;
+
+            if (locked)
+            {
+                this.Background = Brushes.Transparent;
+                this.ResizeMode = ResizeMode.NoResize;
+                TerminalData_TextBox.IsHitTestVisible = true;
+            }
+            else
+            {
+                this.Background = Brushes.Gray;
+                this.ResizeMode = ResizeMode.CanResizeWithGrip;
+                TerminalData_TextBox.IsHitTestVisible = false;
+            }
+        }
+
         #region Event Handlers
+        private void TerminalWindow_MouseDown(object sender, MouseEventArgs e)
+        {
+            if (!_locked && e.LeftButton == MouseButtonState.Pressed)
+                this.DragMove();
+        }
+
+        private void TerminalWindow_LocationChanged(object sender, EventArgs e)
+        {
+            TerminalWindowUpdate();
+        }
+
+        private void TerminalWindow_SizeChanged(object sender, RoutedEventArgs e)
+        {
+            TerminalWindowUpdate();
+        }
+
         private void TerminalDataTextBox_TextChanged(object sender, TextChangedEventArgs e)
         {
             TerminalData_TextBox.ScrollToEnd();
