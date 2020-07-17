@@ -671,8 +671,14 @@ namespace Background_Terminal
 
         private void ExitButton_Click(object sender, RoutedEventArgs e)
         {
-            _sshClient.Disconnect();
-            _sshClient.Dispose();
+            if (_sshClient != null)
+            {
+                if (_sshClient.IsConnected)
+                    _sshClient.Disconnect();
+
+                _sshClient.Dispose();
+            }
+
             _process.Kill();
 
             Close();
