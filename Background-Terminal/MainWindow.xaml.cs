@@ -1,6 +1,7 @@
 ﻿using CoreMeter;
 using Newtonsoft.Json;
 using Renci.SshNet;
+using Renci.SshNet.Common;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -41,6 +42,7 @@ namespace Background_Terminal
 
         // SSH Handling
         private SshClient _sshClient;
+        private ShellStream _sshStream;
         private bool _sshMode = false;
         private string _sshServer = String.Empty;
         private string _sshUsername = String.Empty;
@@ -174,18 +176,6 @@ namespace Background_Terminal
         {
             _terminalData.Add("Background Terminal manually handles SSH connection. (Ctrl + C to quit)");
             _terminalData.Add("Usage: ssh <server>");
-            _terminalData.Add("Note that SSH.net does not support change directory (cd), so you are required to prefix the " +
-                "command with a (cd) call to the directory you want to be in. (cd /my/directory && mycommand)");
-            _terminalData.Add("To get around this, I have implemented automated directory prefixing. If you call (cd) while in SSH mode, it will automatically prefix any " +
-                "further commands with the directory you previously specified.");
-        }
-
-        private string DirectoryPrefixCommand(string command)
-        {
-            if (!_sshCurrentDirectory.Equals(String.Empty))
-                return "cd " + _sshCurrentDirectory + " && " + command;
-
-            return command;
         }
         #endregion
 
@@ -306,7 +296,7 @@ namespace Background_Terminal
             _terminalData.Add(e.Data);
         }
 
-        private string SendCommandSSH(string command, bool silent = false)
+        private async Task<string> SendCommandSSH(string command, bool silent = false)
         {
             // Handle SSH login connection
             if (_sshUsername.Equals(String.Empty))
@@ -329,8 +319,27 @@ namespace Background_Terminal
                     _terminalWindow._passwordMode = false;
                     _terminalWindow._password = String.Empty;
 
+                    var modes = new Dictionary<Renci.SshNet.Common.TerminalModes, uint>();
+                    _sshStream = _sshClient.CreateShellStream("bgtTerm", 255, 50, 800, 600, 1024, modes);
+
+                    _sshStream.DataReceived += async (object sender, ShellDataEventArgs e) =>
+                    {
+                        if (_sshStream != null && _sshStream.CanRead)
+                        {
+                            byte[] buffer = new byte[2048];
+                            int i = 0;
+
+                            if ((i = await _sshStream.ReadAsync(buffer, 0, buffer.Length)) != 1)
+                            {
+                                _terminalData.Add(_sshClient.ConnectionInfo.Encoding.GetString(buffer, 0, i));
+                            }
+                        }
+                    };
+
                     if (_sshClient.IsConnected)
+                    {
                         _terminalData.Add("Connected to " + _sshServer);
+                    }
                     else
                     {
                         _terminalData.Add("There was a problem connecting.");
@@ -352,28 +361,7 @@ namespace Background_Terminal
                 {
                     try
                     {
-                        SshCommand sshCommand = _sshClient.CreateCommand(command);
-                        string result = sshCommand.Execute();
-
-                        StreamReader reader = new StreamReader(sshCommand.ExtendedOutputStream);
-                        string extendedResult = reader.ReadToEnd();
-
-                        if (result.Length > 0 && (result[result.Length - 1] == '\n' || result[result.Length - 1] == '\r'))
-                            result = result.Substring(0, result.Length - 1);
-
-                        // Handle silent calls to pwd maintain SSH current directory
-                        if (silent)
-                            return result;
-
-                        if (extendedResult.Length > 0 && (extendedResult[extendedResult.Length - 1] == '\n' || extendedResult[extendedResult.Length - 1] == '\r'))
-                            extendedResult = extendedResult.Substring(0, extendedResult.Length - 1);
-
-                        if (!result.Equals(String.Empty))
-                            _terminalData.Add(result);
-
-                        if (!extendedResult.Equals(String.Empty))
-                            _terminalData.Add(extendedResult);
-
+                        _sshStream.WriteLine(command);
                     }
                     catch (Exception e)
                     {
@@ -403,16 +391,12 @@ namespace Background_Terminal
             }
         }
 
-        private void SendCommand(string command)
+        private async void SendCommand(string command)
         {
             // Handle SSH mode
             if (_sshMode)
             {
-                _terminalData.Add(DirectoryPrefixCommand(command));
-                SendCommandSSH(DirectoryPrefixCommand(command));
-
-                if (command.ToLower().StartsWith("cd"))
-                    _sshCurrentDirectory = SendCommandSSH(DirectoryPrefixCommand(command) + " && pwd", true);
+                SendCommandSSH(command);
             }
 
             // Background-Terminal application commands
