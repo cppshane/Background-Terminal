@@ -405,8 +405,6 @@ namespace Background_Terminal
 
         private void SendCommand(string command)
         {
-
-
             // Handle SSH mode
             if (_sshMode)
             {
@@ -414,7 +412,7 @@ namespace Background_Terminal
                 SendCommandSSH(DirectoryPrefixCommand(command));
 
                 if (command.ToLower().StartsWith("cd"))
-                    _sshCurrentDirectory = SendCommandSSH(command + " && pwd", true);
+                    _sshCurrentDirectory = SendCommandSSH(DirectoryPrefixCommand(command) + " && pwd", true);
             }
 
             // Background-Terminal application commands
