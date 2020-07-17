@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -9,32 +10,43 @@ namespace Background_Terminal
 {
     public partial class TerminalWindow : Window
     {
-        public delegate void SendCommandProc(string command, bool output = false);
+        // MainWindow Delegates
+        public delegate void SendCommandProc(string command);
         private SendCommandProc SendCommand;
 
-        public delegate void KillChildrenProc();
-        private KillChildrenProc KillChildren;
+        public delegate void KillProcessProc();
+        private KillProcessProc KillProcess;
 
-        public delegate void TerminalWindowUpdateProc();
-        private TerminalWindowUpdateProc TerminalWindowUpdate;
+        public delegate void TerminalWindowUIUpdateProc();
+        private TerminalWindowUIUpdateProc TerminalWindowUIUpdate;
 
+        // Command History
         private List<string> _commandHistory = new List<string>();
         private int _commandHistoryIndex = -1;
 
+        // UI
         private bool _locked;
 
-        bool _ctrlDown = false;
+        // Input Handling
+        private bool _ctrlDown = false;
 
-        public TerminalWindow(SendCommandProc sendCommand, KillChildrenProc killChildren, TerminalWindowUpdateProc terminalWindowUpdate)
+        // Password Mode
+        public bool _passwordMode = false;
+        public string _password = String.Empty;
+
+        #region Constructors
+        public TerminalWindow(SendCommandProc sendCommand, KillProcessProc killProcess, TerminalWindowUIUpdateProc terminalWindowUIUpdate)
         {
             InitializeComponent();
 
             SendCommand = sendCommand;
-            KillChildren = killChildren;
-            TerminalWindowUpdate = terminalWindowUpdate;
+            KillProcess = killProcess;
+            TerminalWindowUIUpdate = terminalWindowUIUpdate;
         }
+        #endregion
 
-        public void UpdateTerminalDataTextBoxMargin() // I do what I want
+        #region UI State Functions
+        private void UpdateTerminalDataTextBoxMargin()
         {
             TerminalData_TextBox.Margin = new Thickness(0, 0, 0, Input_TextBox.ActualHeight);
         }
@@ -56,6 +68,7 @@ namespace Background_Terminal
                 TerminalData_TextBox.IsHitTestVisible = false;
             }
         }
+        #endregion
 
         #region Event Handlers
         private void TerminalWindow_MouseDown(object sender, MouseEventArgs e)
@@ -66,12 +79,16 @@ namespace Background_Terminal
 
         private void TerminalWindow_LocationChanged(object sender, EventArgs e)
         {
-            TerminalWindowUpdate();
+            UpdateTerminalDataTextBoxMargin();
+
+            TerminalWindowUIUpdate();
         }
 
         private void TerminalWindow_SizeChanged(object sender, RoutedEventArgs e)
         {
-            TerminalWindowUpdate();
+            UpdateTerminalDataTextBoxMargin();
+
+            TerminalWindowUIUpdate();
         }
 
         private void TerminalDataTextBox_TextChanged(object sender, TextChangedEventArgs e)
@@ -81,20 +98,24 @@ namespace Background_Terminal
 
         private void InputTextBox_PreviewKeyDown(object sender, KeyEventArgs e)
         {
-            // Cancel current command
+            // Ctrl + C handling
             if (e.Key.Equals(Key.C) && _ctrlDown)
             {
-                KillChildren();
+                _password = String.Empty;
+                _passwordMode = false;
+                Input_TextBox.Text = "";
+
+                KillProcess();
 
                 e.Handled = true;
             }
-
-            if (e.Key.Equals(Key.LeftCtrl))
+            else if (e.Key.Equals(Key.LeftCtrl))
             {
                 _ctrlDown = true;
             }
 
-            if (e.Key.Equals(Key.Up))
+            // Command cycling
+            else if (e.Key.Equals(Key.Up))
             {
                 if (_commandHistoryIndex + 1 < _commandHistory.Count)
                 {
@@ -105,7 +126,7 @@ namespace Background_Terminal
                 }
             }
 
-            if (e.Key.Equals(Key.Down))
+            else if (e.Key.Equals(Key.Down))
             {
                 if (_commandHistoryIndex - 1 >= 0)
                 {
@@ -116,17 +137,46 @@ namespace Background_Terminal
                 }
             }
 
-            if (e.Key.Equals(Key.Return) || e.Key.Equals(Key.Enter))
+            // Enter/Return command
+            else if (e.Key.Equals(Key.Return) || e.Key.Equals(Key.Enter))
             {
-                // Add to command history
                 _commandHistory.Insert(0, Input_TextBox.Text);
                 _commandHistoryIndex = -1;
 
-                // Send command
                 SendCommand(Input_TextBox.Text);
 
-                // Reset textbox content
                 Input_TextBox.Text = "";
+            }
+
+
+            // Backspace password data
+            else if (e.Key.Equals(Key.Back))
+            {
+                if (_passwordMode)
+                    if (_password.Length > 0)
+                        _password = _password.Substring(0, _password.Length - 1);
+            }
+        }
+
+        private void InputTextBox_PreviewTextInput(object sender, TextCompositionEventArgs e)
+        {
+            // Password handling
+            if (_passwordMode)
+            {
+                if (!e.Text.Equals(String.Empty))
+                {
+                    foreach (char c in e.Text)
+                        if (c == '\n' || c == '\r' || !char.IsLetterOrDigit(c) && !char.IsSymbol(c) && !char.IsWhiteSpace(c) && !char.IsPunctuation(c))
+                            return;
+
+                    _password += e.Text;
+
+                    int caretIndex = Input_TextBox.CaretIndex;
+                    Input_TextBox.Text = Input_TextBox.Text + "*";
+                    Input_TextBox.CaretIndex = caretIndex + 1;
+
+                    e.Handled = true;
+                }
             }
         }
 

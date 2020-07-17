@@ -1,10 +1,12 @@
 ﻿using CoreMeter;
 using Newtonsoft.Json;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Management;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
@@ -18,29 +20,44 @@ namespace Background_Terminal
 {
     public partial class MainWindow : Window
     {
+        // Static Fields
         private static BrushConverter _brushConverter = new BrushConverter();
 
         private static DirectoryInfo _appDataDirectory = new DirectoryInfo(System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "BackgroundTerminal"));
         private static string _configFile = "config.json";
         private static string _configPath = System.IO.Path.Combine(_appDataDirectory.FullName, _configFile);
 
-        private CoreMeterUtility _coreMeterUtility;
-
+        // TerminalWindow
         private TerminalWindow _terminalWindow;
 
-        private BackgroundTerminalSettings _settings;
-
+        // Main Process
         private Process _process;
 
+        // CoreMeter
+        private CoreMeterUtility _coreMeterUtility;
+
+        // Settings Container
+        private BackgroundTerminalSettings _settings;
+
+        // SSH Handling
+        private SshClient _sshClient;
+        private bool _sshMode = false;
+        private string _sshServer = String.Empty;
+        private string _sshUsername = String.Empty;
+        private string _sshCurrentDirectory = String.Empty;
+
+        // UI List Bindings
         private ObservableCollection<string> _terminalData = new ObservableCollection<string>();
         public ObservableCollection<NewlineTrigger> NewlineTriggers { get; set; }
 
-        private string _processPath;
+        // Newline State Handling
         private string _currentTrigger = null;
         private string _newlineString = Environment.NewLine;
 
+        // CMD Process ID
         private int _cmdProcessId;
 
+        // TerminalWindow UI State Handling
         private bool _terminalWindowActive = false;
         private bool _terminalWindowLocked = true;
 
@@ -50,12 +67,13 @@ namespace Background_Terminal
         private Key? _key1 = null;
         private Key? _key2 = null;
 
+        #region Constructor
         public MainWindow()
         {
             InitializeComponent();
 
             // Create TerminalWindow
-            _terminalWindow = new TerminalWindow(SendCommand, KillChildren, TerminalWindowUpdate);
+            _terminalWindow = new TerminalWindow(SendCommand, KillProcess, TerminalWindowUIUpdate);
             _terminalWindow.Show();
 
             // Apply changes in terminal data to TerminalWindow
@@ -132,7 +150,46 @@ namespace Background_Terminal
 
             DataContext = this;
         }
+        #endregion
 
+        #region General Functions
+        private void KillProcess()
+        {
+            if (_sshMode)
+            {
+                _sshClient.Disconnect();
+                _sshClient.Dispose();
+
+                _sshMode = false;
+
+                _terminalData.Add("SSH Session Disconnected");
+            }
+            else
+            {
+                KillChildren();
+            }
+        }
+
+        private void OutputSSHUsage()
+        {
+            _terminalData.Add("Background Terminal manually handles SSH connection. (Ctrl + C to quit)");
+            _terminalData.Add("Usage: ssh <server>");
+            _terminalData.Add("Note that SSH.net does not support change directory (cd), so you are required to prefix the " +
+                "command with a (cd) call to the directory you want to be in. (cd /my/directory && mycommand)");
+            _terminalData.Add("To get around this, I have implemented automated directory prefixing. If you call (cd) while in SSH mode, it will automatically prefix any " +
+                "further commands with the directory you previously specified.");
+        }
+
+        private string DirectoryPrefixCommand(string command)
+        {
+            if (!_sshCurrentDirectory.Equals(String.Empty))
+                return "cd " + _sshCurrentDirectory + " && " + command;
+
+            return command;
+        }
+        #endregion
+
+        #region UI State Functions
         private void ApplySettingsToTerminalWindow()
         {
             _terminalWindow.TerminalData_TextBox.FontSize = _settings.FontSize;
@@ -143,10 +200,19 @@ namespace Background_Terminal
             _terminalWindow.Top = _settings.PosY;
             _terminalWindow.Width = _settings.Width;
             _terminalWindow.Height = _settings.Height;
-
-            _terminalWindow.UpdateTerminalDataTextBoxMargin();
         }
 
+        private void TerminalWindowUIUpdate()
+        {
+            PosX_TextBox.Text = _terminalWindow.Left.ToString();
+            PosY_TextBox.Text = _terminalWindow.Top.ToString();
+
+            Width_TextBox.Text = _terminalWindow.Width.ToString();
+            Height_TextBox.Text = _terminalWindow.Height.ToString();
+        }
+        #endregion
+
+        #region Process Helper Functions
         private List<Process> GetProcessChildren()
         {
             List<Process> children = new List<Process>();
@@ -159,6 +225,20 @@ namespace Background_Terminal
 
             return children;
         }
+
+        private void KillChildren()
+        {
+            List<Process> children = GetProcessChildren();
+
+            foreach (Process child in children)
+            {
+                if (!child.Id.Equals(_cmdProcessId))
+                {
+                    child.Kill();
+                }
+            }
+        }
+        #endregion
 
         #region Terminal Data Handlers
         private async Task<int> RunTerminalProcessAsync()
@@ -182,8 +262,8 @@ namespace Background_Terminal
             _process.StartInfo.RedirectStandardError = true;
 
             _process.EnableRaisingEvents = true;
-            _process.OutputDataReceived += CMD_OutputDataReceived;
-            _process.ErrorDataReceived += CMD_ErrorDataReceived;
+            _process.OutputDataReceived += OutputDataReceived;
+            _process.ErrorDataReceived += ErrorDataReceived;
 
             _process.Exited += new EventHandler((sender, args) =>
             {
@@ -216,33 +296,162 @@ namespace Background_Terminal
             return await taskCompletionSource.Task;
         }
 
-        private void CMD_OutputDataReceived(object sender, DataReceivedEventArgs e)
+        private void OutputDataReceived(object sender, DataReceivedEventArgs e)
         {
             _terminalData.Add(e.Data);
         }
 
-        private void CMD_ErrorDataReceived(object sender, DataReceivedEventArgs e)
+        private void ErrorDataReceived(object sender, DataReceivedEventArgs e)
         {
             _terminalData.Add(e.Data);
         }
 
-        private void SendCommand(string command, bool output = true)
+        private string SendCommandSSH(string command, bool silent = false)
         {
-            // Background-Terminal application commands
-            if (command.StartsWith("bgt"))
+            // Handle SSH login connection
+            if (_sshUsername.Equals(String.Empty))
             {
-                string bgtCommand = command.Split(' ')[1];
-                string[] parameters = command.Substring(command.IndexOf(bgtCommand) + bgtCommand.Length + 1).Split(' ');
+                _sshUsername = command;
+                _terminalData.Add("Enter password:");
 
-                if (bgtCommand.Equals("newline"))
+                _terminalWindow._passwordMode = true;
+            }
+            else if (_terminalWindow._passwordMode)
+            {
+                _terminalData.Add("Connecting...");
+
+                // Attempt connection
+                _sshClient = new SshClient(_sshServer, _sshUsername, _terminalWindow._password);
+                try
                 {
-                    _newlineString = Regex.Unescape(parameters[0]);
+                    _sshClient.Connect();
+
+                    _terminalWindow._passwordMode = false;
+                    _terminalWindow._password = String.Empty;
+
+                    if (_sshClient.IsConnected)
+                        _terminalData.Add("Connected to " + _sshServer);
+                    else
+                    {
+                        _terminalData.Add("There was a problem connecting.");
+
+                        _sshMode = false;
+                        _sshUsername = String.Empty;
+                    }
+                }
+                catch (Exception e)
+                {
+                    _terminalData.Add(e.Message);
                 }
             }
+
+            // Handle SSH commands
             else
             {
-                if (output)
-                    _terminalData.Add(command);
+                if (_sshClient.IsConnected)
+                {
+                    try
+                    {
+                        SshCommand sshCommand = _sshClient.CreateCommand(command);
+                        string result = sshCommand.Execute();
+
+                        StreamReader reader = new StreamReader(sshCommand.ExtendedOutputStream);
+                        string extendedResult = reader.ReadToEnd();
+
+                        if (result.Length > 0 && (result[result.Length - 1] == '\n' || result[result.Length - 1] == '\r'))
+                            result = result.Substring(0, result.Length - 1);
+
+                        // Handle silent calls to pwd maintain SSH current directory
+                        if (silent)
+                            return result;
+
+                        if (extendedResult.Length > 0 && (extendedResult[extendedResult.Length - 1] == '\n' || extendedResult[extendedResult.Length - 1] == '\r'))
+                            extendedResult = extendedResult.Substring(0, extendedResult.Length - 1);
+
+                        if (!result.Equals(String.Empty))
+                            _terminalData.Add(result);
+
+                        if (!extendedResult.Equals(String.Empty))
+                            _terminalData.Add(extendedResult);
+
+                    }
+                    catch (Exception e)
+                    {
+                        _terminalData.Add(e.Message);
+                    }
+                }
+                else
+                {
+                    _terminalData.Add("You are no longer connected to SSH. Exiting.");
+
+                    _sshMode = false;
+                    _sshUsername = String.Empty;
+                }
+            }
+
+            return null;
+        }
+
+        private void SendCommandBGT(string command)
+        {
+            string bgtCommand = command.Split(' ')[1];
+            string[] parameters = command.Substring(command.IndexOf(bgtCommand) + bgtCommand.Length + 1).Split(' ');
+
+            if (bgtCommand.Equals("newline"))
+            {
+                _newlineString = Regex.Unescape(parameters[0]);
+            }
+        }
+
+        private void SendCommand(string command)
+        {
+
+
+            // Handle SSH mode
+            if (_sshMode)
+            {
+                _terminalData.Add(DirectoryPrefixCommand(command));
+                SendCommandSSH(DirectoryPrefixCommand(command));
+
+                if (command.ToLower().StartsWith("cd"))
+                    _sshCurrentDirectory = SendCommandSSH(command + " && pwd", true);
+            }
+
+            // Background-Terminal application commands
+            else if (command.ToLower().StartsWith("bgt"))
+            {
+                _terminalData.Add(command);
+                SendCommandBGT(command);
+            }
+
+            // Initialize SSH mode
+            else if (command.ToLower().StartsWith("ssh"))
+            {
+                _terminalData.Add(command);
+
+                List<string> commandParams = command.Split(' ').ToList();
+
+                if (commandParams.Count != 2)
+                {
+                    OutputSSHUsage();
+                }
+                else
+                {
+                    _sshServer = commandParams[1];
+
+                    OutputSSHUsage();
+
+                    _terminalData.Add("");
+                    _terminalData.Add("Enter username:");
+
+                    _sshMode = true;
+                }
+            }
+
+            // Standard command handling
+            else
+            {
+                _terminalData.Add(command);
 
                 _process.StandardInput.NewLine = _newlineString;
                 _process.StandardInput.WriteLine(command);
@@ -264,28 +473,6 @@ namespace Background_Terminal
                     }
                 }
             }
-        }
-
-        private void KillChildren()
-        {
-            List<Process> children = GetProcessChildren();
-
-            foreach (Process child in children)
-            {
-                if (!child.Id.Equals(_cmdProcessId))
-                {
-                    child.Kill();
-                }
-            }
-        }
-
-        private void TerminalWindowUpdate()
-        {
-            PosX_TextBox.Text = _terminalWindow.Left.ToString();
-            PosY_TextBox.Text = _terminalWindow.Top.ToString();
-
-            Width_TextBox.Text = _terminalWindow.Width.ToString();
-            Height_TextBox.Text = _terminalWindow.Height.ToString();
         }
         #endregion
 
@@ -484,6 +671,10 @@ namespace Background_Terminal
 
         private void ExitButton_Click(object sender, RoutedEventArgs e)
         {
+            _sshClient.Disconnect();
+            _sshClient.Dispose();
+            _process.Kill();
+
             Close();
         }
 

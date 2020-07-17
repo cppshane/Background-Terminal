@@ -28,11 +28,13 @@
         <TextBox
             x:Name="Input_TextBox"
             VerticalAlignment="Bottom"
+            AcceptsTab="False"
             Background="Transparent"
             BorderThickness="0"
             Focusable="True"
             FontFamily="Consolas"
             PreviewKeyDown="InputTextBox_PreviewKeyDown"
-            PreviewKeyUp="InputTextBox_PreviewKeyUp" />
+            PreviewKeyUp="InputTextBox_PreviewKeyUp"
+            PreviewTextInput="InputTextBox_PreviewTextInput" />
     </Grid>
 </Window>
