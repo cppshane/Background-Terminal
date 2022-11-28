@@ -9,6 +9,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Management;
+using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Windows;
@@ -67,6 +68,9 @@ namespace Background_Terminal {
         private Key? _key1 = null;
         private Key? _key2 = null;
 
+        // Filter to apply to output
+        private Regex _regex;
+
         #region Constructor
         public MainWindow() {
             InitializeComponent();
@@ -83,7 +87,11 @@ namespace Background_Terminal {
                     {
                         foreach (string newItem in target.NewItems) 
                         {
-                            _terminalWindow.TerminalData_TextBox.AppendText(newItem + Environment.NewLine);
+                            if (_regex != null) {
+                                _terminalWindow.TerminalData_TextBox.AppendText(_regex.Replace(newItem, "") + Environment.NewLine);
+                            } else {
+                                _terminalWindow.TerminalData_TextBox.AppendText(newItem + Environment.NewLine);
+                            }
                         }
                         
                         _terminalWindow.TerminalData_TextBox.ScrollToEnd();
@@ -119,6 +127,7 @@ namespace Background_Terminal {
             PosY_TextBox.Text = _settings.PosY.ToString();
             Width_TextBox.Text = _settings.Width.ToString();
             Height_TextBox.Text = _settings.Height.ToString();
+            RegexFilter_TextBox.Text = _settings.RegexFilter;
 
             if (_settings.NewlineTriggers == null)
                 _settings.NewlineTriggers = new List<NewlineTrigger>();
@@ -506,6 +515,14 @@ namespace Background_Terminal {
                 return;
             }
 
+            try {
+                _regex = new Regex(RegexFilter_TextBox.Text);
+            } catch {
+                System.Windows.MessageBox.Show("There was an error interpreting the regex filter");
+                return;
+            }
+
+
             _settings.Key1 = KeyInterop.VirtualKeyFromKey((Key)_key1);
             _settings.Key2 = KeyInterop.VirtualKeyFromKey((Key)_key2);
             _settings.FontSize = fontSize;
@@ -514,6 +531,7 @@ namespace Background_Terminal {
             _settings.PosY = posY;
             _settings.Width = width;
             _settings.Height = height;
+            _settings.RegexFilter = RegexFilter_TextBox.Text;
 
             _settings.NewlineTriggers = new List<NewlineTrigger>(NewlineTriggers);
 
