@@ -17,6 +17,7 @@ namespace Background_Terminal
         public double PosY { get; set; }
         public double Width { get; set; }
         public double Height { get; set; }
+        public string RegexFilter { get; set; }
         public List<NewlineTrigger> NewlineTriggers { get; set; }
     }
 }
