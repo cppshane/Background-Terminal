@@ -16,15 +16,14 @@
     WindowStyle="None"
     mc:Ignorable="d">
     <Grid>
-        <TextBox
+        <RichTextBox
             x:Name="TerminalData_TextBox"
             Background="Transparent"
             BorderThickness="0"
             FontFamily="Consolas"
             IsReadOnly="True"
             IsReadOnlyCaretVisible="True"
-            TextChanged="TerminalDataTextBox_TextChanged"
-            TextWrapping="Wrap" />
+            TextChanged="TerminalDataTextBox_TextChanged" />
         <TextBox
             x:Name="Input_TextBox"
             VerticalAlignment="Bottom"
