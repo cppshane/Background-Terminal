@@ -117,6 +117,14 @@ namespace Background_Terminal {
 
             _key1 = KeyInterop.KeyFromVirtualKey(_settings.Key1);
             _key2 = KeyInterop.KeyFromVirtualKey(_settings.Key2);
+            
+            if (_settings.RegexFilter != null) {
+                try {
+                    _regex = new Regex(_settings.RegexFilter);
+                } catch { 
+                    // Should not happen, unless someone fiddles with the JS file manually
+                }
+            }
 
             Process_TextBox.Text = _settings.ProcessPath;
             Key1_Button.Content = _key1.ToString();
