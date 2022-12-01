@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <?include $(sys.CURRENTDIR)\Config.wxi?>
-	<Product Id="*" Name="$(var.ProductName)" Language="1033" Version="1.2.5.0" Manufacturer="shaneduffy.io" UpgradeCode="983054b1-dfd7-4147-b5cc-fc703cefcc1c">
+	<Product Id="*" Name="$(var.ProductName)" Language="1033" Version="1.2.6.0" Manufacturer="shaneduffy.io" UpgradeCode="983054b1-dfd7-4147-b5cc-fc703cefcc1c">
 		<Package InstallerVersion="200" InstallPrivileges="elevated" Compressed="yes" InstallScope="perMachine" Description="$(var.ProductName)"/>
 
 		<MajorUpgrade DowngradeErrorMessage="A newer version of Background Terminal is already installed." />
