@@ -181,6 +181,7 @@
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
+                <RowDefinition Height="30" />
                 <RowDefinition Height="10" />
                 <RowDefinition Height="30" />
                 <RowDefinition Height="30" />
@@ -189,7 +190,7 @@
                 <RowDefinition Height="100" />
                 <RowDefinition Height="30" />
             </Grid.RowDefinitions>
-            <Border Grid.RowSpan="12" Background="#F5F5F5" />
+            <Border Grid.RowSpan="13" Background="#F5F5F5" />
             <Grid Grid.Row="0">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
@@ -299,6 +300,23 @@
                     Grid.Column="0"
                     VerticalAlignment="Center"
                     HorizontalContentAlignment="Center"
+                    Content="Font Family:"
+                    FontFamily="Yu Gothic UI Light" />
+                <TextBox
+                    x:Name="FontFamily_TextBox"
+                    Grid.Column="1"
+                    Margin="10,5,10,5"
+                    VerticalContentAlignment="Center" />
+            </Grid>
+            <Grid Grid.Row="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="1*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <Label
+                    Grid.Column="0"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
                     Content="Regex Filter:"
                     FontFamily="Yu Gothic UI Light" />
                 <TextBox
@@ -307,14 +325,14 @@
                     Margin="10,5,10,5"
                     VerticalContentAlignment="Center" />
             </Grid>
-            <Grid Grid.Row="6">
+            <Grid Grid.Row="7">
                 <Border
                     Height="1"
                     Margin="10,0,10,0"
                     BorderBrush="Gray"
                     BorderThickness="1" />
             </Grid>
-            <Grid Grid.Row="7">
+            <Grid Grid.Row="8">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
@@ -335,7 +353,7 @@
                         Style="{StaticResource StandardButton1}" />
                 </Grid>
             </Grid>
-            <Grid Grid.Row="8">
+            <Grid Grid.Row="9">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
@@ -378,7 +396,7 @@
                         FontFamily="Yu Gothic UI" />
                 </Grid>
             </Grid>
-            <Grid Grid.Row="9">
+            <Grid Grid.Row="10">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1*" />
@@ -421,14 +439,14 @@
                         FontFamily="Yu Gothic UI" />
                 </Grid>
             </Grid>
-            <Grid Grid.Row="10">
+            <Grid Grid.Row="11">
                 <Border
                     Height="1"
                     Margin="10,0,10,0"
                     BorderBrush="Gray"
                     BorderThickness="1" />
             </Grid>
-            <Grid Grid.Row="11">
+            <Grid Grid.Row="12">
                 <Grid.RowDefinitions>
                     <RowDefinition Height="30" />
                     <RowDefinition Height="1*" />
@@ -507,7 +525,7 @@
                     </ListBox.ItemTemplate>
                 </ListBox>
             </Grid>
-            <Grid Grid.Row="12">
+            <Grid Grid.Row="13">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="1*" />
                     <ColumnDefinition Width="1" />

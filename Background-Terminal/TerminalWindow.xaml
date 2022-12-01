@@ -20,7 +20,6 @@
             x:Name="TerminalData_TextBox"
             Background="Transparent"
             BorderThickness="0"
-            FontFamily="Consolas"
             IsReadOnly="True"
             IsReadOnlyCaretVisible="True"
             TextChanged="TerminalDataTextBox_TextChanged" />

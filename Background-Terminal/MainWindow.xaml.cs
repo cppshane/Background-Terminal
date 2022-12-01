@@ -130,7 +130,8 @@ namespace Background_Terminal {
             Key1_Button.Content = _key1.ToString();
             Key2_Button.Content = _key2.ToString();
             FontSize_TextBox.Text = _settings.FontSize.ToString();
-            FontColor_TextBox.Text = _settings.FontColor.ToString();
+            FontColor_TextBox.Text = _settings.FontColor;
+            FontFamily_TextBox.Text = _settings.FontFamily;
             PosX_TextBox.Text = _settings.PosX.ToString();
             PosY_TextBox.Text = _settings.PosY.ToString();
             Width_TextBox.Text = _settings.Width.ToString();
@@ -179,6 +180,9 @@ namespace Background_Terminal {
         private void ApplySettingsToTerminalWindow() {
             _terminalWindow.TerminalData_TextBox.FontSize = _settings.FontSize;
             _terminalWindow.Input_TextBox.FontSize = _settings.FontSize;
+            if (_settings.FontFamily != null) {
+                _terminalWindow.TerminalData_TextBox.FontFamily = new FontFamily(_settings.FontFamily);
+            }
             _terminalWindow.TerminalData_TextBox.Foreground = (Brush)_brushConverter.ConvertFromString(_settings.FontColor);
             _terminalWindow.Input_TextBox.Foreground = (Brush)_brushConverter.ConvertFromString(_settings.FontColor);
             _terminalWindow.Left = _settings.PosX;
@@ -496,6 +500,13 @@ namespace Background_Terminal {
             }
 
             try {
+                new FontFamily(_settings.FontFamily);
+            } catch {
+                System.Windows.MessageBox.Show("There was an error interpreting font family input");
+                return;
+            }
+
+            try {
                 posX = Convert.ToDouble(PosX_TextBox.Text);
             } catch {
                 System.Windows.MessageBox.Show("There was an error interpreting X position input");
@@ -530,11 +541,11 @@ namespace Background_Terminal {
                 return;
             }
 
-
             _settings.Key1 = KeyInterop.VirtualKeyFromKey((Key)_key1);
             _settings.Key2 = KeyInterop.VirtualKeyFromKey((Key)_key2);
             _settings.FontSize = fontSize;
             _settings.FontColor = fontColor.ToString();
+            _settings.FontFamily = FontFamily_TextBox.Text;
             _settings.PosX = posX;
             _settings.PosY = posY;
             _settings.Width = width;

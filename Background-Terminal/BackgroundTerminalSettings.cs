@@ -13,6 +13,7 @@ namespace Background_Terminal
         public int Key2 { get; set; }
         public double FontSize { get; set; }
         public string FontColor { get; set; }
+        public string FontFamily { get; set; }
         public double PosX { get; set; }
         public double PosY { get; set; }
         public double Width { get; set; }
